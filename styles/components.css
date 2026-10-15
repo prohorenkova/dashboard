@@ -147,18 +147,30 @@
   color: #000;
 }
 
-/* ===== Pinterest Embed ===== */
-.pinterest-embed {
-  min-height: 280px;
-  width: 100%;
-  overflow: hidden;
-  border: 2px solid var(--border);
-  background: var(--bg-elevated);
+.giphy-search {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
 }
-.pinterest-embed span,
-.pinterest-embed > span {
-  display: block !important;
-  width: 100% !important;
+.giphy-search input {
+    flex: 1;
+    border: 2px solid var(--border);
+    border-radius: 0;
+    padding: 8px 10px;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    background: var(--bg);
+    color: var(--text);
+}
+
+.giphy-search button {
+    padding: 8px 12px;
+    font-size: 0.75rem;
+    background: var(--accent-2);
+    color: #000;
+    border: 2px solid var(--border);
+    box-shadow: none;
+    border-radius: 0;
 }
 
 /* ===== Quote / Advice ===== */
@@ -166,6 +178,7 @@
   text-align: left;
   padding: 4px 0;
 }
+
 .quote__text {
   font-size: 0.95rem;
   font-style: normal;
