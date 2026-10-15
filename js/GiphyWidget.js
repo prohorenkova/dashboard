@@ -1,7 +1,6 @@
 import { UIComponent } from './UIComponent.js';
 
-/***/
-const GIPHY_API_KEY = 'SVHWpsy1WedH816XVFeFJQst2E4EnxBL'; 
+const GIPHY_API_KEY = 'SVHWpsy1WedH816XVFeFJQst2E4EnxBL';
 
 export class GiphyWidget extends UIComponent {
   static defaultTitle = 'GIF';
@@ -13,37 +12,39 @@ export class GiphyWidget extends UIComponent {
   }
 
   afterRender() {
+    // Привязываем обработчик формы поиска
+    const form = this.getContentElement()?.querySelector('.giphy-search');
+    if (form) {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const input = form.querySelector('input');
+        const value = input.value.trim();
+        if (value) {
+          this.tag = value;
+          this.refresh();
+        }
+      });
+    }
     this.refresh();
   }
 
-  async fetchGifs(limit = 6) {
-    if (!GIPHY_API_KEY || GIPHY_API_KEY === 'YOUR_GIPHY_API_KEY') {
-      throw new Error('Вставь Giphy API Key в GiphyWidget.js');
-    }
+async fetchGifs(limit = 6) {
+  const controller = this.createAbortController();
+  const r = await fetch(
+    `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(this.tag)}&limit=${limit}&rating=g`,
+    { signal: controller.signal }
+  );
+  if (!r.ok) throw new Error(`Giphy ${r.status}`);
+  const json = await r.json();
+  return (json.data || []).map((g) => ({
+    id: g.id,
+    title: g.title || 'GIF',
+    url: g.images?.fixed_height?.url || g.images?.original?.url,
+    link: g.url
+  }));
+}
 
-    const controller = this.createAbortController();
-    // Берём несколько случайных по тегу
-    const promises = Array.from({ length: limit }, () =>
-      fetch(
-        `https://api.giphy.com/v1/gifs/random?api_key=${GIPHY_API_KEY}&tag=${encodeURIComponent(this.tag)}&rating=g`,
-        { signal: controller.signal }
-      ).then((r) => {
-        if (!r.ok) throw new Error(`Giphy ${r.status}`);
-        return r.json();
-      })
-    );
 
-    const results = await Promise.all(promises);
-    return results
-      .map((r) => r?.data)
-      .filter(Boolean)
-      .map((g) => ({
-        id: g.id,
-        title: g.title || 'GIF',
-        url: g.images?.fixed_height?.url || g.images?.original?.url,
-        link: g.url
-      }));
-  }
 
   async refresh() {
     const content = this.getContentElement();
@@ -53,6 +54,19 @@ export class GiphyWidget extends UIComponent {
     try {
       this.gifs = await this.fetchGifs(6);
       content.innerHTML = this.renderGrid(this.gifs);
+      // После перерисовки снова навешиваем обработчик формы
+      const form = content.querySelector('.giphy-search');
+      if (form) {
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const input = form.querySelector('input');
+          const value = input.value.trim();
+          if (value) {
+            this.tag = value;
+            this.refresh();
+          }
+        });
+      }
     } catch (err) {
       if (err.name === 'AbortError') return;
       console.error(err);
@@ -69,9 +83,19 @@ export class GiphyWidget extends UIComponent {
   }
 
   renderGrid(gifs) {
-    if (!gifs.length) return '<p class="empty">Нет GIF</p>';
+    const searchForm = `
+      <form class="giphy-search">
+        <input type="text" placeholder="Поиск GIF..." value="${this.escapeHtml(this.tag)}">
+        <button type="submit">Найти</button>
+      </form>
+    `;
+
+    if (!gifs.length) {
+      return `${searchForm}<p class="empty">Нет GIF</p>`;
+    }
 
     return `
+      ${searchForm}
       <div class="giphy-grid">
         ${gifs
           .map(
